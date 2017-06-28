@@ -1,0 +1,1239 @@
+      SUBROUTINE EncBeam(val,nx,ny,naok,
+     &     rawdata,nhitdata,hitdet,nhitdet,ndet,ndata)
+c Modified by abey @ 2016.04.14
+c-----------------------------------------------------------------------
+c ANALYZER 2 : Encbeam
+c-----------------------------------------------------------------------
+c  for raw data histgrams
+c  ID=1 R3 CAMAC #08 C008 ch 0, 1
+c  ID=2 R3 CAMAC #08 C008 ch 2, 3
+c  ID=3 R3 CAMAC #08 C008 ch 4, 5
+c  ID=4 R3 CAMAC #08 C008 ch 6, 7
+c  ID=5 R3 CAMAC #10 RPH-022-1 ch 0, 1
+c  ID=6 R3 CAMAC #10 RPH-022-1 ch 2, 3
+c  ID=7 R3 CAMAC #10 RPH-022-1 ch 4, 5
+c  ID=8 R3 CAMAC #12 RPH-022-2 ch 0, 1
+c  ID=9 R3 CAMAC #12 RPH-022-2 ch 2, 3
+c  ID=10 R3 CAMAC #14 K3780 ch 0, 1
+c  ID=11 R3 CAMAC #14 K3780 ch 2, 3
+c  ID=12 R3 CAMAC #14 K3780 ch 4, 5
+c  ID=13 R3 CAMAC #14 K3780 ch 6, 7
+c  ID=14 R3 CAMAC #16 K3780 ch 0, 1
+c  ID=15 R3 CAMAC #16 K3780 ch 2, 3
+c  ID=16 R3 CAMAC #16 K3780 ch 4, 5
+c  ID=17 R3 CAMAC #16 K3780 ch 6, 7
+c  ID=18 R3 CAMAC #06 C008 ch 0, 1
+c  ID=19 R3 CAMAC #06 C008 ch 2, 3
+c  ID=20 R3 CAMAC #06 C008 ch 4, 5
+c  ID=21 R3 CAMAC #06 C008 ch 6, 7
+c  ID=22 R3 CAMAC #06 C008 ch 8, 9
+c  ID=23 R3 CAMAC #06 C008 ch 10, 11
+c  ID=24 R3 CAMAC #06 C008 ch 12, 13
+c  ID=25 R3 CAMAC #06 C008 ch 14, 15
+c  ID=26 R3 CAMAC #04 2249W ch 0, 1
+c  ID=27 R3 CAMAC #02 RPC-170 ch 0, 1
+c  ID=28 R3 CAMAC #02 RPC-170 ch 2, 3
+c  ID=29 R3 CAMAC #02 RPC-170 ch 4, 5
+c  ID=30 R3 CAMAC #02 RPC-170 ch 6, 7
+c  ID=31 BigRIPS CAMAC F2 Pla L 
+c  ID=32 BigRIPS CAMAC F2 Pla R
+c  ID=33 BigRIPS CAMAC F3 Pla L 
+c  ID=34 BigRIPS CAMAC F3 Pla R
+c  ID=35 BigRIPS CAMAC F3 Pla CFD-T(L and R) 
+c  ID=36 F3 CAMAC #01 AD811 ch 0, 1
+c  ID=37 F3 CAMAC # C008 ch 0, 1
+c  ID=38 F3 CAMAC # C008 ch 2, 3
+c  ID=39 BigRIPS CAMAC F7 Pla LE-T (L and R)
+c  ID=40 BigRIPS CAMAC F7 Pla CFD-T (L and R)
+c  ID=41 FH10 VME TDC ch 11, 12 (LE for T)
+c  ID=42 FH10 VME TDC ch 141, 142 (TE for Q)
+
+c  for view true histgrams
+c-----------------------------------------------------------------------
+c  ID=90 PPAC X, Y (F3, F4, F5, F6, FH9, FH10, S0)
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   F31aX F31aY F31bX F31bY F32aX F32aY F32bX F32bY
+c
+c  W# :  11   12    13    14    15    16    17    18    19    20
+c             F51aX F51aY F51bX F51bY F52aX F52aY F52bX F52bY
+c
+c  W# :  21   22    23    24    25    26    27    28    29    30
+c             F4X   F4Y   F6X   F6Y   
+c
+c  W# :  31   32    33    34    35    36    37    38    39    40
+c             FH9X  FH9Y  FHXX  FHXY  S0X   S0Y
+c
+c-----------------------------------------------------------------------
+c  ID=121 F2 plastic
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   F2LT        F2RT        F2LQ        F2RQ  
+c             (ch)        (ch)        (ch)        (ch)  
+c  W# :  11   12    13    14    15    16    17    18    19    20
+c             F2LT        F2RT        F2LQ        F2RQ
+c             (ns)        (ns)        (ch)       (ch)
+c  W# :  21   22    23    24    25    26    27    28    29    30
+c             F2Tsum      F2Tavr      F2Qsum      F2Qavr  
+c
+c-----------------------------------------------------------------------
+c  ID=122 F2 IC
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   IC1         IC2         IC3
+c             (ch)        (ch)        (ch)
+c  W# :  11   12    13    14    15    16    17    18    19    20
+c             IC1(ped)    IC2(ped)    IC3(ped)
+c             (ch)        (ch)        (ch)
+c  W# :  21   22    23    24    25    26    27    28    29    30
+c             Esum                    Escal       
+c             (ch)                    (MeV)       
+c-----------------------------------------------------------------------
+c  ID=131 F3 plastic
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   F3LT  F3RT        F3LQ  F3RQ        F3LTC F3RTC
+c             (ch)  (ch)        (ch)  (ch)        (ch)  (ch)
+c  W# :  11   12    13    14    15    16    17    18    19    20
+c             F3LT  F3RT        F3LQ  F3RQ        F3LTC F3RTC
+c             (ns)  (ns)        (ch)  (ch)        (ns)  (ns)
+c  W# :  21   22    23    24    25    26    27    28    29    30
+c             Tsum  Tavr        Qsum  Qavr        CTsum CTavr
+c             (ns)              (ch)              (ns)
+c-----------------------------------------------------------------------
+c  ID=132 F3 Si
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   dE1         dE2         dE1ped      dE2ped
+c             (ch)        (ch)        (ch)        (ch)
+c  W# :  11   12    13    14    15    16    17    18    19    20
+c             dE1         dE2         dE1+dE2     dE1+dE2cal
+c             (MeV)       (MeV)       (ch)        (MeV)
+c  W# :  21   22    23    24    25    26    27    28    29    30
+c
+c
+c-----------------------------------------------------------------------
+c  ID=133 F3 reconstruction
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   F31X  F31Y  F32X  F32Y 
+c
+c  W# :  11   12    13    14    15    16    17    18    19    20
+c             F3X         F3Y
+c
+c  W# :  21   22    23    24    25    26    27    28    29    30
+c             F3A         F3B
+c
+c-----------------------------------------------------------------------
+c  ID=141 F4 PPAC
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   F4X         F4Y
+c
+c-----------------------------------------------------------------------
+c  ID=151 F5 reconstruction
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   F51X  F51Y  F52X  F52Y 
+c
+c  W# :  11   12    13    14    15    16    17    18    19    20
+c             F5X         F5Y
+c
+c  W# :  21   22    23    24    25    26    27    28    29    30
+c             F5A         F5B
+c
+c-----------------------------------------------------------------------
+c  ID=161 F6 PPAC
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   F6X         F6Y
+c
+c-----------------------------------------------------------------------
+c  ID=201 S0 reconstruction
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   FH10aX       FH10aY     FH10bX      FH10bY  
+c
+c  W# :  11   12    13    14    15    16    17    18    19    20
+c             S0X         S0Y
+c
+c  W# :  21   22    23    24    25    26    27    28    29    30
+c             S0A         S0B
+c
+c-----------------------------------------------------------------------
+c  ID=202 S0 plastic TOF
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   LTcal RTcal       LQcal RQcal       LT(R3)RT(R3)
+c
+c  W# :  11   12    13    14    15    16    17    18    19    20
+c             Tsum  Tavr        Qsum  Qavr        Tsum  Tavr (at R3)
+c                
+c  W# :  21   22    23    24    25    26    27    28    29    30
+c             Tscal Tacal                         Tscal Tacal (at R3)
+c             (ns)  (ns)                          (ns)  (ns)
+c-----------------------------------------------------------------------
+c  ID=203 S2 PPAC position
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   X1    Y1    X2    Y2    X1ped Y1ped X2ped Y2ped
+c
+c  W# :  11   12    13    14    15    16    17    18    19    20
+c             X1-X2 X1+X2 Y1-Y2 Y1-Y2       
+c
+c  W# :  21   22    23    24    25    26    27    28    29    30
+c             S2X         S2Y
+c
+c-----------------------------------------------------------------------
+c  ID=301 ILC1 PPAC and reconstruction
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   X1    Y1    X2    Y2    AT
+c             (ch)  (ch)  (ch)  (ch)  (ch)
+c  W# :  11   12    13    14    15    16    17    18    19    20
+c             X1    Y1    X2    Y2    AT
+c             (ns)  (ns)  (ns)  (ns)  (ns)
+c  W# :  21   22    23    24    25    26    27    28    29    30
+c             dTX(X2-X1)  dTY(Y1-Y2)  dTXcal      dTYcal 
+c
+c  W# :  31   32    33    34    35    36    37    38    39    40
+c             Xns2mm      Yns2mm      Xint        Yint
+c
+c  W# :  41   42    43    44    45    46    47    48    49    50
+c             Xgeo        Ygeo        ILC1A       ILC1B
+c             (mm)        (mm)        (mrad)      (mrad)
+c-----------------------------------------------------------------------
+c  ID=302 ILC2 T-shape plastic
+c  W# :  1    2      3      4      5      6      7      8      9      10
+c        ID   LT     RUT    RDT           LQ     RUQ    RDQ
+c             (ch)   (ch)   (ch)         
+c  W# :  11   12     13     14     15     16     17     18     19     20
+c        ID   LTcal  RUTcal RDTcal        LQcal  RUQcal RDQcal
+c             (ns)   (ns)   (ns)
+c  W# :  21   22     23     24     25     26     27     28     29     30
+c        ID   RTsum  Tsum   RTavr  Tavr   RQsum  Qsum   RQavr  Qavr
+c
+c-----------------------------------------------------------------------
+c  ID=303 ILC2 PPAC position
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   X1    Y1    X2    Y2    AT
+c             (ch)  (ch)  (ch)  (ch)  (ch)
+c  W# :  11   12    13    14    15    16    17    18    19    20
+c             X1    Y1    X2    Y2    AT
+c             (ns)  (ns)  (ns)  (ns)  (ns)
+c  W# :  21   22    23    24    25    26    27    28    29    30
+c             dTX(X2-X1)  dTY(Y1-Y2)  dTXcal      dTYcal 
+c
+c  W# :  31   32    33    34    35    36    37    38    39    40
+c             Xns2mm      Yns2mm      Xint        Yint
+c
+c  W# :  41   42    43    44    45    46    47    48    49    50
+c             Xgeo        Ygeo        
+c             (mm)        (mm)        
+c-----------------------------------------------------------------------
+c  ID=304 R-MD plastic TOF
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   MD1   MD2   MD3   MD4   Kick
+c             (ns)  (ns)  (ns)  (ns)  (ns)
+c-----------------------------------------------------------------------
+c  ID=305 ELC IC (Saitama)
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   IC1   IC2   IC3   IC4   IC5   IC6   IC7   IC8   IC9
+c
+c  W# :  11   12    13    14    15    16    17    18    19    20
+c        IC10 IC11  IC12  IC13     
+c             
+c  W# :  21   22    23    24    25    26    27    28    29    30
+c             IC1p  IC2p  IC3p  IC4p  IC5p  IC6p  IC7p  IC8p  IC9p     
+c             
+c  W# :  31   32    33    34    35    36    37    38    39    40
+c             IC10p IC11p IC12p IC13p
+c             
+c  W# :  41   42    43    44    45    46    47    48    49    50
+c             ICsum       ICsumcal    
+c             
+c-----------------------------------------------------------------------
+c  ID=306 ELC plastic
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   UTcal       DTcal       UQ          DQ
+c
+c  W# :  11   12    13    14    15    16    17    18    19    20
+c                                     UQcal       DQcal
+c             
+c  W# :  21   22    23    24    25    26    27    28    29    30
+c             Tsum        Tavr        Qsum        Qavr 
+c             
+c-----------------------------------------------------------------------
+c  ID=307 NaI
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   Qraw        Qcal
+c
+c-----------------------------------------------------------------------
+c  ID=308 Schottky
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   Trig.
+c
+c-----------------------------------------------------------------------
+c  ID=400 For PI
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   TOF23       TOF37       TOF3S0      TOF3ILC2
+c             
+c  W# :  11   12    13    14    15    16    17    18    19     20
+c        ID   TOF23(off)  TOF37(off)  TOF3S0(off) TOF3ILC2(off)
+c
+c  W# :  21   22    23    24    25    26    27    28    29     30
+c        ID   F2dE(IC)                dE(Si1)     dE(Si2)      dE(Si)
+c
+c-----------------------------------------------------------------------
+c  ID=410 For Mass
+c  W# :  1    2     3     4     5     6     7     8     9     10
+c        ID   
+c
+c-----------------------------------------------------------------------
+c  encbeam.f
+c
+c     ihit_min                  : the number of required data (ihit_min0)
+c     hitdet(1:nhitdet)         : hit detector id
+c     nhitdata(1:ndet)          : the number of data for each id 
+c     nhitdet                   : the number of hit detector
+c     ndet                      : the number of total detectors
+c     ndata                     : the length of rawdata array
+      IMPLICIT NONE
+      INCLUDE 'analyslogic.fh'
+      INCLUDE 'commonprm.fh'
+
+      INTEGER nx, ny, ndet, ndata, naok
+      INTEGER rawdata(ndata,ndet)
+      INTEGER nhitdata(ndet)
+      INTEGER hitdet(ndet)
+      INTEGER nhitdet
+      INTEGER i,j
+
+      REAL    val(nx,ny)
+
+ccccc F3 ccccccc
+      REAL f3eX, f3eY
+      REAL f3dX, f3dY
+      REAL f3dZ, f3Z
+
+ccccc F5 ccccccc
+      REAL f5eX, f5eY
+      REAL f5dX, f5dY
+      REAL f5dZ, f5Z
+
+ccccc FH10 ccccccc
+c      REAL s0eX, s0eY
+      REAL s0dX, s0dY
+      REAL s0dZx, s0dZy
+      REAL s0Zx, s0Zy
+
+ccccc ILC1 ccccc
+
+      REAL s2eX, s2eY
+      REAL s2dX, s2dY
+      REAL s2dZx, s2dZy
+      REAL s2Zx, s2Zy
+
+cccc dispersion correction factor cccc
+
+      REAL cf46dp
+      REAL cf6il1dp
+      REAL cf6il2dp
+
+ccc For calc ccc
+
+      REAL F2Tsum
+      REAL F2Qavr
+
+      REAL F2dE
+
+      REAL F3Tsum
+      REAL F3Qavr
+      REAL F3TCsum
+
+      REAL F3dE1
+      REAL F3dE2
+      REAL F3dE
+
+      REAL F7Tsum
+      REAL F7TCsum
+      
+      REAL S0Tsum_FH10
+      REAL S0Tsum_R3
+
+      REAL I2Tsum
+
+      REAL ELC_Tsum
+
+      REAL ELC_dE
+
+c      CHARACTER ihitchara*4
+      INTEGER ihit_min0
+
+      INTEGER ihit, id
+
+      SAVE ihit_min0
+c      save naiprev
+
+      IF (InitENCflag(2)) THEN
+c         CALL LOADDALIPRM
+c         CALL GETENV('IHIT_MIN0',ihitchara)
+c         READ(ihitchara,*) ihit_min0
+c         IF (ihit_min0.EQ.1) THEN
+c            WRITE(*,*) 'ENCDALI-M : IHIT_MIN0 = ', ihit_min0
+c         ELSE
+c            ihit_min0 = 3
+c            WRITE(*,*) 'ENCDALI-M : IHIT_MIN0 -> ', ihit_min0
+c         ENDIF
+         InitENCFlag(2) = .FALSE.
+c         DO i=1,186,1
+c            write(*,*)i,ped(i)+gain(i)*3840.
+c            write(*,*)i,(100.-ped(i))/gain(i),
+c     &           int((100.-ped(i))/gain(i)/2.)
+c            write(*,*)i, int((100.-ped(i))/gain(i)/2.)
+c         ENDDO
+      ENDIF
+
+      naok = 0
+
+      DO ihit = 1,nhitdet
+         id = hitdet(ihit)
+
+c         IF (id.GT.nch_dali) CYCLE
+c         IF (nhitdata(id).LT.ihit_min0) CYCLE ! ihit_min
+c         IF (rawdata(3,id).GT.1) CYCLE
+
+c         write(*,*) fh10tref
+
+         naok = naok + 1
+
+         val(1,naok) = id
+
+         val(2,naok) = rawdata(1,id)
+         val(3,naok) = rawdata(2,id)
+
+c         write(*,*) id,naok,rawdata(1,27)
+
+c        for FH10 Plastic T and Q
+         do j=41,42
+            if(id.eq.j) then
+            do i=1,2
+               rawdata(i,j) = rawdata(i,j) - fh10tref + 20000.
+            enddo
+         endif
+         enddo
+
+c         write(*,*) id, naok
+
+ccccccccccccccccccccccccccccccccc
+
+         
+c         IF (val(2,naok).GT.0. .AND. val(3,naok).GT.0.) THEN
+c            mult = mult + 1
+c         ENDIF
+
+      ENDDO
+
+cccccccccccccccccccccccccccccccccc
+ccc all ppac from encppac Part ccc
+cccccccccccccccccccccccccccccccccc
+
+      ID = 90
+      naok = naok + 1
+      val(1,naok) = id
+      val(2,naok) = f31ax
+      val(3,naok) = f31ay
+      val(4,naok) = f31bx
+      val(5,naok) = f31by
+
+      val(6,naok) = f32ax
+      val(7,naok) = f32ay
+      val(8,naok) = f32bx
+      val(9,naok) = f32by
+
+      val(12,naok) = f51ax
+      val(13,naok) = f51ay
+      val(14,naok) = f51bx
+      val(15,naok) = f51by
+
+      val(16,naok) = f52ax
+      val(17,naok) = f52ay
+
+      val(18,naok) = f52bx
+      val(19,naok) = f52by
+
+      val(22,naok) = f4x
+      val(23,naok) = f4y
+
+      val(24,naok) = f6x
+      val(25,naok) = f6y
+
+c      val(32,naok) = fh9x - 0.04602
+c      val(33,naok) = fh9y - 0.5314
+
+      val(34,naok) = fh10x
+      val(35,naok) = fh10y
+c      val(34,naok) = fh10x * (-1.) - 0.3947
+c      val(35,naok) = fh10y + 0.08362
+
+      val(36,naok) = s0x
+      val(37,naok) = s0y
+c      val(36,naok) = s0x * (-1.) - 0.6050
+c      val(37,naok) = s0y - 0.4585
+
+ccccccccccccccccc
+ccc PPAC Tsum ccc
+ccccccccccccccccc
+
+      val(42,naok) = f31atxsum
+      val(43,naok) = f31atysum
+      val(44,naok) = f31btxsum
+      val(45,naok) = f31btysum
+
+      val(46,naok) = f32atxsum
+      val(47,naok) = f32atysum
+      val(48,naok) = f32btxsum
+      val(49,naok) = f32btysum
+
+      val(52,naok) = f51atxsum
+      val(53,naok) = f51atysum
+      val(54,naok) = f51btxsum
+      val(55,naok) = f51btysum
+
+      val(56,naok) = f52atxsum
+      val(57,naok) = f52atysum
+      val(58,naok) = f52btxsum
+      val(59,naok) = f52btysum
+
+      val(62,naok) = f4txsum
+      val(63,naok) = f4tysum
+
+      val(64,naok) = f6txsum
+      val(65,naok) = f6tysum
+
+      val(74,naok) = fh10txsum
+      val(75,naok) = fh10tysum
+
+      val(76,naok) = s0txsum
+      val(77,naok) = s0tysum
+
+cccccccccccccccccc
+ccc for F2 Pla ccc
+cccccccccccccccccc
+
+      ID = 121
+
+      naok = naok + 1
+      val(1,naok) = id
+
+      val(2,naok) = rawdata(2,31)  ! F2 Pla LT raw
+      val(4,naok) = rawdata(2,32)  ! F2 Pla RT raw
+
+      val(6,naok) = rawdata(1,31)  ! F2 Pla LQ raw
+      val(8,naok) = rawdata(1,32)  ! F2 Pla RQ raw
+
+      val(12,naok) = val(2,naok) * 0.0268680 ! F2 PLa LT cal
+      val(14,naok) = val(4,naok) * 0.0271937 ! F2 PLa RT cal
+
+      val(16,naok) = val(5,naok) - 0.0000 ! F2 PLa LQ ped
+      val(18,naok) = val(8,naok) - 0.0000 ! F2 Pla RQ ped
+
+      val(22,naok) = (val(12,naok) + val(14,naok)) * 0.5 ! F2 Tsum
+
+      val(28,naok) = (val(16,naok) * val(18,naok)) **0.5 ! F2 Qavr
+
+      F2Tsum = val(22,naok)
+
+      F2Qavr = val(28,naok)
+
+ccccccccccccccccc
+ccc for F2 IC ccc
+ccccccccccccccccc
+
+      ID = 122
+
+      naok = naok + 1
+      val(1,naok) = id
+
+      val(2,naok) = rawdata(1,37)  ! F2 IC Ch1 raw
+      val(4,naok) = rawdata(2,37)  ! F2 IC Ch2 raw
+      val(6,naok) = rawdata(1,38)  ! F2 IC Ch3 raw
+
+      val(12,naok) = val(2,naok) - 0.0 ! F2 IC Ch1 ped.
+      val(14,naok) = val(3,naok) - 0.0 ! F2 IC Ch2 ped.
+      val(16,naok) = val(4,naok) - 0.0 ! F2 IC Ch3 ped.
+
+      val(20,naok) = (val(12,naok) * val(14,naok)) ** 0.5 ! F2 IC12 avr
+      val(22,naok) = (val(20,naok) * val(16,naok)) ** 0.5 ! F2 IC avr
+
+      val(26,naok) = val(22,naok) * 1.0000 + 0.0000 ! F2 IC Calib.
+
+      F2dE = val(26,naok)
+
+cccccccccccccccccc
+ccc for F3 Pla ccc
+cccccccccccccccccc
+
+      ID = 131
+
+      naok = naok + 1
+      val(1,naok) = id
+
+      val(2,naok) = rawdata(2,33)  ! F3 Pla LT raw
+      val(3,naok) = rawdata(2,34)  ! F3 Pla RT raw
+      val(5,naok) = rawdata(1,33)  ! F3 Pla LQ raw
+      val(6,naok) = rawdata(1,34)  ! F3 Pla RQ raw
+      val(8,naok) = rawdata(1,35) ! F3 Pla LT(CFD) raw 
+      val(9,naok) = rawdata(2,35) ! F3 Pla RT(CFD) raw 
+
+      val(12,naok) = val(2,naok) * 0.0271382 ! F3 PLa LT cal
+      val(13,naok) = val(3,naok) * 0.0276006 ! F3 PLa RT cal
+      val(15,naok) = val(5,naok) - 0.0000 ! F3 PLa LQ ped
+      val(16,naok) = val(6,naok) - 0.0000 ! F3 Pla RQ ped
+      val(18,naok) = val(8,naok) * 0.0257660 ! F3 PLa LTC cal
+      val(19,naok) = val(9,naok) * 0.0275440 ! F3 Pla RTC cal
+
+      val(22,naok) = (val(12,naok) + val(13,naok)) * 0.5 ! F3 Tsum
+      val(26,naok) = (val(15,naok) * val(16,naok)) ** 0.5 ! F3 Qavr
+      val(28,naok) = (val(18,naok) + val(19,naok)) * 0.5 ! F3 TCsum
+
+      F3Tsum = val(22,naok)
+      F3Qavr = val(26,naok)
+      F3TCsum = val(28,naok)
+
+c      val(32,naok) = val(22,naok) - F2Tavr + 78.5! TOF23
+
+c      val(36,naok) = val(25,naok) * 1.0000 - 0.0000 !  F3 Q ch2MeV
+
+c      val(38,naok) = val(28,naok) - F2Tavr ! TOF23(CFD)
+
+c      val(34,naok) = val(32,naok) * 1.0000 ! TOF23 cor. by F6X <-- input
+c      val(35,naok) = val(25,naok) * 1.0000 ! F3Q cor. by F6X <-- input
+c      val(40,naok) = val(38,naok) * 1.0000 ! TOF23(CFD) cor. by F6X <-- input
+
+ccccccccccccccccc
+ccc for F3 Si ccc
+ccccccccccccccccc
+
+      ID = 132
+
+      naok = naok + 1
+      val(1,naok) = id
+
+      val(2,naok) = rawdata(1,36)  ! F3 Si1 raw
+      val(4,naok) = rawdata(2,36)  ! F3 Si2 raw
+
+      val(6,naok) = val(2,naok) - 0.0 ! F3 Si1 ped.
+      val(8,naok) = val(3,naok) - 0.0 ! F3 Si2 ped.
+
+      val(12,naok) = val(6,naok) * 1.0 + 0.0 ! F3 Si1 calib.
+      val(14,naok) = val(8,naok) * 1.0 + 0.0 ! F3 Si2 calib.
+
+      val(16,naok) = val(6,naok) + val(8,naok) ! F3 Si1 + Si2
+      val(18,naok) = val(8,naok) * 1.0 + 0.0 ! F3 Si1 + Si2 calib.
+
+      F3dE1 = val(12,naok) 
+      F3dE2 = val(14,naok)
+      F3dE = val(18,naok)
+
+ccccccccccccccccccc
+ccc for F3 PPAC ccc
+ccccccccccccccccccc
+
+      ID = 133
+
+      naok = naok + 1
+      val(1,naok) = id
+
+      val(2,naok) = (f31ax + f31bx) * 0.5  ! F3PPAC1 X
+      val(3,naok) = (f31ay + f31by) * 0.5  ! F3PPAC1 Y
+      val(4,naok) = (f32ax + f32bx) * 0.5  ! F3PPAC2 X
+      val(5,naok) = (f32ay + f32by) * 0.5  ! F3PPAC2 Y
+
+      f3eX = val(4,naok)
+      f3eY = val(5,naok)
+      f3dX = val(4,naok) - val(2,naok)
+      f3dY = val(5,naok) - val(3,naok)
+      f3dZ = 890.
+      f3Z = -890. ! Distance from PPAC2 to F3-focal plane
+
+      val(12,naok) = f3eX + (f3dX/f3dZ)*f3Z ! X @ F3
+      val(14,naok) = f3eY + (f3dY/f3dZ)*f3Z ! Y @ F3
+
+      val(22,naok) = atan(f3dX/f3dZ)*1000. ! angle for X @ F3
+      val(24,naok) = atan(f3dY/f3dZ)*1000. ! angle for Y @ F3
+
+ccccccccccccccccccc
+ccc for F4 PPAC ccc
+ccccccccccccccccccc
+
+      ID = 141
+
+      naok = naok + 1
+      val(1,naok) = id
+
+      val(2,naok) = f4x  ! F4PPAC X
+      val(4,naok) = f4y  ! F4PPAC Y
+
+
+ccccccccccccccccccc
+ccc for F5 PPAC ccc
+ccccccccccccccccccc
+
+      ID = 151
+
+      naok = naok + 1
+      val(1,naok) = id
+
+      val(2,naok) = (f51ax + f51bx) * 0.5  ! F5PPAC1 X
+      val(3,naok) = (f51ay + f51by) * 0.5  ! F5PPAC1 Y
+      val(4,naok) = (f52ax + f52bx) * 0.5  ! F5PPAC2 X
+      val(5,naok) = (f52ay + f52by) * 0.5  ! F5PPAC2 Y
+ 
+      f5eX = val(4,naok)
+      f5eY = val(5,naok)
+      f5dX = val(4,naok) - val(2,naok)
+      f5dY = val(5,naok) - val(3,naok)
+      f5dZ = 650.
+      f5Z = -250. ! Distance from PPAC2 to F5-focal plane for X
+
+      val(12,naok) = f5eX + (f5dX/f5dZ)*f5Z ! X @ F5
+      val(14,naok) = f5eY + (f5dY/f5dZ)*f5Z ! Y @ F5
+
+      val(22,naok) = atan(f5dX/f5dZ)*1000. ! angle for X @ F5
+      val(24,naok) = atan(f5dY/f5dZ)*1000. ! angle for Y @ F5
+
+ccccccccccccccccccc
+ccc for F6 PPAC ccc
+ccccccccccccccccccc
+
+      ID = 161
+
+      naok = naok + 1
+      val(1,naok) = id
+
+      val(2,naok) = f6x  ! F6PPAC X
+      val(4,naok) = f6y  ! F6PPAC Y
+
+cccccccccccccccccc
+ccc for F7 Pla ccc
+cccccccccccccccccc
+
+      ID = 171
+
+      naok = naok + 1
+      val(1,naok) = id
+
+      val(2,naok) = rawdata(1,39)  ! F7 Pla LT raw
+      val(3,naok) = rawdata(2,39)  ! F7 Pla RT raw
+      val(8,naok) = rawdata(1,40)  ! F7 Pla CFDLT raw
+      val(9,naok) = rawdata(2,40)  ! F7 Pla CFDRT raw
+
+      val(12,naok) = val(2,naok) * 1.0000000 ! F7 PLa LT cal
+      val(13,naok) = val(3,naok) * 1.0000000 ! F7 PLa RT cal
+      val(18,naok) = val(8,naok) * 1.0000000 ! F7 PLa LTC cal
+      val(19,naok) = val(9,naok) * 1.0000000 ! F7 Pla RTC cal
+
+      val(22,naok) = (val(12,naok) + val(13,naok)) * 0.5 ! F7 Tsum
+      val(28,naok) = (val(18,naok) + val(19,naok)) * 0.5 ! F7 TCsum
+
+      F7Tsum = val(22,naok)
+      F7TCsum = val(28,naok)
+
+ccccccccccccccccccccc
+ccc for FH10 PPAC ccc
+ccccccccccccccccccccc
+
+      ID = 201
+
+      naok = naok + 1
+      val(1,naok) = id
+
+      val(2,naok) = fh10x
+      val(4,naok) = fh10y
+      
+      s0dX = s0x - fh10x !!! Please check 
+      s0dY = s0y - fh10y !!! Please check
+      s0dZx = 500.
+      s0dZy = 500.
+      s0Zx =  1321.7 ! Distance from PPAC2 to s0-focal plane for X
+      s0Zy =  1313.1 ! Distance from PPAC2 to s0-focal plane for Y
+
+      val(12,naok) = s0X + (s0dX/s0dZx)*s0Zx ! X @ S0
+      val(14,naok) = s0Y + (s0dY/s0dZy)*s0Zy ! Y @ S0
+
+      val(22,naok) = atan(s0dX/s0dZx)*1000. ! angle for X @ S0
+      val(24,naok) = atan(s0dY/s0dZy)*1000. ! angle for Y @ S0
+
+cccccccccccccc
+ccc S0 Pla ccc
+cccccccccccccc
+
+      ID = 202
+
+      naok = naok + 1
+      val(1,naok) = id
+
+      val(2,naok) = rawdata(1,41) * 0.09766 ! S0 LT ch2ns
+      val(3,naok) = rawdata(2,41) * 0.09766 ! S0 RT ch2ns
+
+      val(5,naok) = rawdata(1,42) * 0.09766 ! S0 LQ ch2ns
+      val(6,naok) = rawdata(2,42) * 0.09766 ! S0 RT ch2ns
+
+      val(8,naok) = FH10_LT ! in nsec DAQ at B3F --> R3
+      val(9,naok) = FH10_RT ! in nsec DAQ at B3F --> R3
+
+      val(12,naok) = (val(2,naok) + val(3,naok)) * 0.5 ! S0 Tsum @ FH10 DAQ
+
+      val(15,naok) = (val(5,naok) + val(6,naok)) * 0.5 ! S0 Qsum @ FH10 DAQ 
+
+      val(18,naok) = (val(18,naok) + val(19,naok)) * 0.5 ! S0 Tsum @ R3 DAQ 
+
+      S0Tsum_FH10 = val(12,naok)
+
+      S0Tsum_R3 = val(18,naok)
+
+cccccccccc
+ccc S1 ccc
+cccccccccc
+
+      ID = 203
+
+      naok = naok + 1
+      val(1,naok) = id
+
+      val(2,naok) = S1_T ! TC842 in nsec
+
+cccccccccccccccc
+ccc S2 PPAC  ccc
+cccccccccccccccc
+
+      ID = 204
+
+      naok = naok + 1
+      val(1,naok) = id
+      val(2,naok) = rawdata(1,1) ! X1
+      val(3,naok) = rawdata(2,1) ! Y1
+      val(4,naok) = rawdata(1,2) ! X2
+      val(5,naok) = rawdata(2,2) ! Y2
+
+      val(6,naok) = val(2,17) - 44.0 ! X1 - ped.
+      val(7,naok) = val(3,17) - 52.0 ! Y1 - ped.
+      val(8,naok) = val(2,18) - 49.0 ! X2 - ped.
+      val(9,naok) = val(3,18) - 52.0 ! Y2 - ped.
+
+      val(12,naok) = val(6,naok) - val(8,naok) ! X1 - X2
+      val(13,naok) = val(6,naok) + val(8,naok) ! X1 + X2
+      val(14,naok) = val(7,naok) - val(9,naok) ! Y1 - Y2
+      val(15,naok) = val(7,naok) + val(9,naok) ! Y2 + Y2
+
+      val(17,naok) = val(12,naok) / val(13,naok)
+      val(18,naok) = val(14,naok) / val(15,naok)
+
+      val(22,naok) = val(17,naok) * (-52.113) + 0.0151 ! S2 PPAC X calib IC-ADC
+      val(24,naok) = val(18,naok) * (-51.948) + 0.0606 ! S2 PPAC Y calib IC-ADC 
+
+      val(26,naok) = val(22,naok) + 0.000 ! S2 PPAC X geo offset 
+      val(28,naok) = val(24,naok) + 0.000 ! S2 PPAC Y geo offset
+
+      s2eX = val(26,naok)
+      s2eY = val(28,naok)
+
+cccccccccccccccccccccccccccccccccccccc
+ccc for dispersion correction part ccc
+cccccccccccccccccccccccccccccccccccccc
+
+      ID = 205
+
+      naok = naok + 1
+      val(1,naok) = id
+
+      cf46dp = -3.726 ! (-75.3 / 18.3 mm) <-- input fitting result F4 X vs F6 X
+c      cf46dp = -1.557 ! (-75.3 / 18.3 mm) <-- input fitting result F4 X vs F6 X
+c      cf46dp = -4.0000 ! (-75.3 / 18.3 mm) <-- input fitting result F4 X vs F6 X
+      val(2,naok) = f6x - cf46dp * f4x
+
+      cf6il1dp = -0.6000 ! (-47 / 75.3 mm) <-- input fitting result F6 X vs ILC1 X
+      val(4,naok) = ilc1x - cf6il1dp * f6x
+
+      cf6il2dp = 0.9500 ! (-72.5 / 75.3 mm) <-- input fitting result F4 X vs ILC2 X
+      val(6,naok) = ilc2x - cf6il2dp * f6x
+
+
+ccccccccccccccccccccc   R3 Part  cccccccccccccccccccc
+
+cccccccccccccccccccccccc
+ccc ILC1 PPAC Calib. ccc
+cccccccccccccccccccccccc
+
+      ID = 301
+
+      naok = naok + 1
+      val(1,naok) = id
+      val(2,naok) = rawdata(1,10) ! X1
+      val(3,naok) = rawdata(2,10) ! Y1
+      val(4,naok) = rawdata(1,11) ! X2
+      val(5,naok) = rawdata(2,11) ! Y2
+      val(6,naok) = rawdata(1,12) ! Anode
+
+      val(12,naok) = val(2,naok) * 0.04818 ! X1 ch2ns
+      val(13,naok) = val(3,naok) * 0.04850 ! Y1 ch2ns
+      val(14,naok) = val(4,naok) * 0.04799 ! X2 ch2ns
+      val(15,naok) = val(5,naok) * 0.04793 ! Y2 ch2ns
+      val(16,naok) = val(6,naok) * 0.04786 ! AT ch2ns
+
+      val(18,naok) = val(12,naok) + val(14,naok) ! Txsum
+      val(19,naok) = val(13,naok) + val(15,naok) ! Tysum
+c      val(18,naok) = val(12,naok) + val(14,naok) - 2.0*val(16,naok) ! Txsum
+c      val(19,naok) = val(13,naok) + val(15,naok) - 2.0*val(16,naok) ! Tysum
+
+      val(22,naok) = val(12,naok) - val(14,naok) ! dTX (X1-X2)
+      val(24,naok) = val(13,naok) - val(15,naok) ! dTY (Y1-Y2)
+
+      val(26,naok) = val(22,naok) - 12.96 ! dTX outline calib.
+      val(28,naok) = val(24,naok) + 0.6125 ! dTY outline calib.
+
+      val(32,naok) = val(26,naok) * 1.234 / 2. ! dTX ns2mm
+      val(34,naok) = val(28,naok) * 1.253 / 2. ! dTY ns2mm
+
+      val(36,naok) = val(32,naok) - 0.18 + 0.00 ! X internal offset
+      val(38,naok) = val(34,naok) + 0.57 + 0.00 ! Y internal offset
+
+      if((val(18,naok).gt.0).and.(val(18,naok).lt.200))then
+         val(42,naok) = val(36,naok) + 0.0000 ! X geometrical offset 
+      else
+         val(42,naok) = -100. ! TXsum gateout
+      endif
+
+      if((val(19,naok).gt.0).and.(val(19,naok).lt.200))then
+         val(44,naok) = val(38,naok) + 0.0000 ! Y geometrical offset
+      else
+         val(44,naok) = -100. ! TYsum gateout
+      endif
+
+      s2dX = val(42,naok) - s2eX
+      s2dY = val(44,naok) - s2eY
+      s2dZx = 500.
+      s2dZy = 500.
+      s2Zx =  1321.7 ! Distance from PPAC2 to s0-focal plane for X
+      s2Zy =  1313.1 ! Distance from PPAC2 to s0-focal plane for Y
+
+      val(46,naok) = atan(s2dX/s2dZx)*1000. ! angle for X @ ILC1
+      val(48,naok) = atan(s2dY/s2dZy)*1000. ! angle for Y @ ICL1
+
+
+cccccccccccccccccc
+ccc ILC2 T-Pla ccc
+cccccccccccccccccc
+
+      ID = 302
+
+      naok = naok + 1
+      val(1,naok) = id
+      val(2,naok) = ILC2_LT ! LT in nsec TC842
+      val(3,naok) = ILC2_RUT ! RUT in nsec TC842
+      val(4,naok) = ILC2_RDT ! RDT in nsec TC842
+
+      val(6,naok) = rawdata(1,5) ! LQ 
+      val(7,naok) = rawdata(2,5) ! RUQ
+      val(8,naok) = rawdata(1,6) ! RDQ
+
+      val(16,naok) = val(6,naok) - 0.0000 ! LQ - ped. 
+      val(17,naok) = val(7,naok) - 0.0000 ! RUQ - ped.
+      val(18,naok) = val(8,naok) - 0.0000 ! RDQ - ped.
+
+      val(22,naok) = (val(3,naok) + val(4,naok)) * 0.5 ! RTsum 
+      val(23,naok) = (val(2,naok) + val(22,naok)) * 0.5 ! Tsum 
+
+      val(26,naok) = (val(17,naok) + val(18,naok)) * 0.5 ! RQsum 
+      val(27,naok) = (val(16,naok) + val(26,naok)) * 0.5 ! Qsum 
+
+      I2Tsum = val(23,naok) 
+
+cccccccccccccccccccccccc
+ccc ILC2 PPAC Calib. ccc
+cccccccccccccccccccccccc
+
+      ID = 303
+
+      naok = naok + 1
+      val(1,naok) = id
+      val(2,naok) = rawdata(1,14) ! X1
+      val(3,naok) = rawdata(2,14) ! Y1
+      val(4,naok) = rawdata(1,15) ! X2
+      val(5,naok) = rawdata(2,15) ! Y2
+      val(6,naok) = rawdata(1,16) ! Anode
+
+      val(12,naok) = val(2,naok) * 0.04859 ! X1 ch2ns
+      val(13,naok) = val(3,naok) * 0.04832 ! Y1 ch2ns
+      val(14,naok) = val(4,naok) * 0.04867 ! X2 ch2ns
+      val(15,naok) = val(5,naok) * 0.04875 ! Y2 ch2ns
+      val(16,naok) = val(6,naok) * 0.04888 ! AT ch2ns
+
+      val(18,naok) = val(12,naok) + val(14,naok) ! Txsum
+      val(19,naok) = val(13,naok) + val(15,naok) ! Tysum
+c      val(18,naok) = val(12,naok) + val(14,naok) - 2.0*val(16,naok) ! Txsum
+c      val(19,naok) = val(13,naok) + val(15,naok) - 2.0*val(16,naok) ! Tysum
+
+      val(22,naok) = val(14,naok) - val(12,naok) ! dTX (X2-X1)
+      val(24,naok) = val(13,naok) - val(15,naok) ! dTY (Y1-Y2)
+
+      val(26,naok) = val(22,naok) - 0.7503 ! dTX outline calib.
+      val(28,naok) = val(24,naok) + 9.508 ! dTY outline calib.
+
+      val(32,naok) = val(26,naok) * 1.245 / 2. ! dTX ns2mm
+      val(34,naok) = val(28,naok) * 1.239 / 2. ! dTY ns2m
+
+      val(36,naok) = val(32,naok) + 0.35 + 0.00! X internal offset
+      val(38,naok) = val(34,naok) + 0.79 - 0.83 ! Y internal offset
+
+      if((val(18,naok).gt.0).and.(val(18,naok).lt.200))then
+         val(42,naok) = val(36,naok) + 0.0000 ! X geometrical offset 
+      else
+         val(42,naok) = -100.
+      endif
+
+      if((val(19,naok).gt.0).and.(val(19,naok).lt.200))then
+         val(44,naok) = val(38,naok) + 0.0000 ! Y geometrical offset
+      else
+         val(44,naok) = -100.
+      endif
+
+cccccccccccccccc
+ccc R-MD Pla ccc
+cccccccccccccccc
+
+      ID = 304
+
+      naok = naok + 1
+      val(1,naok) = id
+
+      val(2,naok) = rawdata(1,27) ! R-MD1
+      val(3,naok) = rawdata(2,27) ! R-MD2
+      val(4,naok) = rawdata(1,28) ! R-MD3
+      val(5,naok) = rawdata(2,28) ! R-MD4
+      val(6,naok) = Kick_LT ! Kicker Pla in nsec TC842
+      val(7,naok) = Kick_RT ! Kicker Pla in nsec TC842
+      val(8,naok) = RMD4_T ! Kicker Pla in nsec TC842
+
+      val(10,naok) = (val(6,naok) + val(7,naok)) * 0.5 ! Kicker-Pla Tsum
+
+      val(12,naok) = rawdata(1,7) ! kick-LQ
+      val(14,naok) = rawdata(2,7) ! kick-RQ
+
+cccccccccccccc
+ccc ELC IC ccc
+cccccccccccccc
+
+      ID = 305
+
+      naok = naok + 1
+      val(1,naok) = id
+      val(2,naok) = rawdata(1,18) ! ELC IC ch 1
+      val(3,naok) = rawdata(2,18) ! ELC IC ch 2
+      val(4,naok) = rawdata(1,19) ! ELC IC ch 3
+      val(5,naok) = rawdata(2,19) ! ELC IC ch 4
+      val(6,naok) = rawdata(1,20) ! ELC IC ch 5
+      val(7,naok) = rawdata(2,20) ! ELC IC ch 6
+      val(8,naok) = rawdata(1,21) ! ELC IC ch 7
+      val(9,naok) = rawdata(2,21) ! ELC IC ch 8
+      val(10,naok) = rawdata(1,22) ! ELC IC ch 9
+      val(11,naok) = rawdata(2,22) ! ELC IC ch 10
+      val(12,naok) = rawdata(1,23) ! ELC IC ch 11
+      val(13,naok) = rawdata(2,23) ! ELC IC ch 12
+      val(14,naok) = rawdata(1,24) ! ELC IC ch 13
+
+      val(22,naok) = val(2,naok) - 0.0000 ! ELC IC ch 1 - ped.
+      val(23,naok) = val(3,naok) - 0.0000 ! ELC IC ch 2 - ped.
+      val(24,naok) = val(4,naok) - 0.0000 ! ELC IC ch 3 - ped.
+      val(25,naok) = val(5,naok) - 0.0000 ! ELC IC ch 4 - ped.
+      val(26,naok) = val(6,naok) - 0.0000 ! ELC IC ch 5 - ped.
+      val(27,naok) = val(7,naok) - 0.0000 ! ELC IC ch 6 - ped.
+      val(29,naok) = val(9,naok) - 0.0000 ! ELC IC ch 8 - ped.
+      val(28,naok) = val(8,naok) - 0.0000 ! ELC IC ch 7 - ped. 
+      val(29,naok) = val(9,naok) - 0.0000 ! ELC IC ch 8 - ped.
+      val(30,naok) = val(10,naok) - 0.0000 ! ELC IC ch 9 - ped.
+      val(31,naok) = val(11,naok) - 0.0000 ! ELC IC ch 10 - ped.
+      val(32,naok) = val(12,naok) - 0.0000 ! ELC IC ch 11 - ped. 
+      val(33,naok) = val(13,naok) - 0.0000 ! ELC IC ch 12 - ped.
+      val(34,naok) = val(14,naok) - 0.0000 ! ELC IC ch 13 - ped.
+
+c     Q-Sum
+      DO i=22,34
+         val(42,naok) = val(i,naok) ! All ch sum
+      ENDDO
+ 
+c     Calib. delta E
+      val(44,naok) = val(42,naok) * 1.0000 + 0.0 ! ELC IC in MeV
+
+      ELC_dE = val(44,naok)
+
+ccccccccccccccc
+ccc ELC Pla ccc
+ccccccccccccccc
+
+      ID = 306
+
+      naok = naok + 1
+      val(1,naok) = id
+
+      val(2,naok) = ELC_UT  ! TU in nsec 
+      val(4,naok) = ELC_DT  ! TD in nsec 
+
+      val(6,naok) = rawdata(1,8) ! QUraw 
+      val(8,naok) = rawdata(2,8) ! QDraw
+
+      val(16,naok) = val(6,naok) - 0.0000 ! QU - ped.
+      val(18,naok) = val(8,naok) - 0.0000 ! QD - ped.
+
+      val(22,naok) = (val(2,naok) + val(4,naok))*0.5 ! ELC_Tsum
+
+      val(28,naok) = (val(16,naok) * val(18,naok))**0.5 ! ELC_Qavr
+
+      ELC_Tsum = val(26,naok)
+
+c      val(22,naok) = val(12,naok) - S0TOF_FH10 ! Ring TOF use FH10 data
+c      val(24,naok) = val(12,naok) - S0TOF_R3 ! Ring TOF use R3 data
+
+c      val(26,naok) = val(22,naok) + 0.0000 ! Ring TOF cal use FH10 data
+c      val(28,naok) = val(24,naok) + 0.0000 ! Ring TOF cal use R3 data
+
+
+cccccccccccc
+ccc NaI  ccc
+cccccccccccc
+
+c      ID = 307
+
+c      naok = naok + 1
+c      val(1,naok) = id
+
+c      val(2,naok) = rawdata(1,26) ! NaI Q
+
+c      val(4,naok) = val(2,naok) - 0.0000 ! NaI Q - ped.
+
+c      val(6,naok) = val(4,naok) * 1.000 - 0.00 ! TotalE calib.
+
+
+cccccccccccccccc
+ccc Schottky ccc
+cccccccccccccccc
+
+      ID = 308
+
+      naok = naok + 1
+      val(1,naok) = id
+      val(2,naok) = Schottky ! RSA Trig. in msec
+
+
+cccccccccccccccccccc
+ccc for PI calc. ccc
+cccccccccccccccccccc
+      Id = 400
+
+      naok = naok + 1
+      val(1,naok) = id
+
+      val(2,naok) = F3Tsum - F2Tsum ! TOF23
+      val(4,naok) = F7Tsum - F3Tsum ! TOF37
+      val(6,naok) = S0Tsum_R3 - F3Tsum ! TOF3X
+      val(8,naok) = I2Tsum - F3Tsum ! TOF3ILC2
+
+      val(12,naok) = val(2,naok) + 0.0000 ! TOF23 offset in
+      val(14,naok) = val(4,naok) + 0.0000 ! TOF37 offset in
+      val(16,naok) = val(6,naok) + 0.0000 ! TOF3S0 offset in
+      val(18,naok) = val(8,naok) + 0.0000 ! TOF3ILC2 offset in
+
+      val(22,naok) = F2dE ! F2dE IC
+
+      val(26,naok) = F3dE1 ! F3dE Si1
+      val(28,naok) = F3dE2 ! F3dE Si1
+      val(30,naok) = F3dE ! F3dE Si1+Si2
+
+      val(42,naok) = val(12,naok) - 1.0000 * f6x ! TOF23 cor by F6X
+      val(46,naok) = val(16,naok) - 1.0000 * f6x ! TOF3S0 cor by F6X
+      val(48,naok) = val(18,naok) - 1.0000 * f6x ! TOF3ILC2 cor by F6X
+      
+      val(52,naok) = val(22,naok) - 1.0000 * f6x ! F2dE cor by F6X
+
+      val(56,naok) = val(26,naok) - 1.0000 * f6x ! F3dE1 cor by F6X
+      val(58,naok) = val(28,naok) - 1.0000 * f6x ! F3dE2 cor by F6X
+
+
+cccccccccccccccccc
+c for Mass calc. c
+cccccccccccccccccc
+c      ID = 410
+      
+c      naok = naok + 1
+c      val(1,naok) = id
+
+c      val(2,naok) = 
+
+ccccccccccccccccccc
+c for CAMAC at R3 c
+ccccccccccccccccccc
+      ID = 420
+      
+      naok = naok + 1
+      val(1,naok) = id
+      val(2,naok) = rawdata(1,1) ! #8 C008 ch 0
+      val(3,naok) = rawdata(2,1) ! #8 C008 ch 1
+      val(4,naok) = rawdata(1,2) ! #8 C008 ch 2
+      val(5,naok) = rawdata(2,2) ! #8 C008 ch 3
+      val(6,naok) = rawdata(1,3) ! #8 C008 ch 4
+      val(7,naok) = rawdata(2,3) ! #8 C008 ch 5
+      val(8,naok) = rawdata(1,4) ! #8 C008 ch 6
+      val(9,naok) = rawdata(2,4) ! #8 C008 ch 7
+
+      val(12,naok) = rawdata(1,5) ! #10 RPH1 ch 0
+      val(13,naok) = rawdata(2,5) ! #10 RPH1 ch 1
+      val(14,naok) = rawdata(1,6) ! #10 RPH1 ch 2
+      val(15,naok) = rawdata(2,6) ! #10 RPH1 ch 3
+      val(16,naok) = rawdata(1,7) ! #10 RPH1 ch 4
+      val(17,naok) = rawdata(2,7) ! #10 RPH1 ch 5
+
+      val(18,naok) = rawdata(1,8) ! #12 RPH2 ch 0
+      val(19,naok) = rawdata(2,8) ! #12 RPH2 ch 1
+      val(20,naok) = rawdata(1,9) ! #12 RPH2 ch 2
+      val(21,naok) = rawdata(2,9) ! #12 RPH2 ch 3
+
+      val(24,naok) = rawdata(1,10) ! #14 TDC1 ch 0
+      val(25,naok) = rawdata(2,10) ! #14 TDC1 ch 1
+      val(26,naok) = rawdata(1,11) ! #14 TDC1 ch 2
+      val(27,naok) = rawdata(2,11) ! #14 TDC1 ch 3
+      val(28,naok) = rawdata(1,12) ! #14 TDC1 ch 4
+      val(29,naok) = rawdata(2,12) ! #14 TDC1 ch 5
+      val(30,naok) = rawdata(1,13) ! #14 TDC1 ch 6
+      val(31,naok) = rawdata(2,13) ! #14 TDC1 ch 7
+
+      val(32,naok) = rawdata(1,14) ! #16 TDC2 ch 0
+      val(33,naok) = rawdata(2,14) ! #16 TDC2 ch 1
+      val(34,naok) = rawdata(1,15) ! #16 TDC2 ch 2
+      val(35,naok) = rawdata(2,15) ! #16 TDC2 ch 3
+      val(36,naok) = rawdata(1,16) ! #16 TDC2 ch 4
+      val(37,naok) = rawdata(2,16) ! #16 TDC2 ch 5
+      val(38,naok) = rawdata(1,17) ! #16 TDC2 ch 6
+      val(39,naok) = rawdata(2,17) ! #16 TDC2 ch 7
+
+      val(42,naok) = rawdata(1,18) ! #6 ADC2 ch 0
+      val(43,naok) = rawdata(2,18) ! #6 ADC2 ch 1
+      val(44,naok) = rawdata(1,19) ! #6 ADC2 ch 2
+      val(45,naok) = rawdata(2,19) ! #6 ADC2 ch 3
+      val(46,naok) = rawdata(1,20) ! #6 ADC2 ch 4
+      val(47,naok) = rawdata(2,20) ! #6 ADC2 ch 5
+      val(48,naok) = rawdata(1,21) ! #6 ADC2 ch 6
+      val(49,naok) = rawdata(2,21) ! #6 ADC2 ch 7
+      val(50,naok) = rawdata(1,22) ! #6 ADC2 ch 8
+      val(51,naok) = rawdata(2,22) ! #6 ADC2 ch 9
+      val(52,naok) = rawdata(1,23) ! #6 ADC2 ch 10
+      val(53,naok) = rawdata(2,23) ! #6 ADC2 ch 11
+      val(54,naok) = rawdata(1,24) ! #6 ADC2 ch 12
+      val(55,naok) = rawdata(2,24) ! #6 ADC2 ch 13
+      val(56,naok) = rawdata(1,25) ! #6 ADC2 ch 14
+      val(57,naok) = rawdata(2,25) ! #6 ADC2 ch 15
+
+      val(61,naok) = rawdata(1,26) ! #4 2249W ch 0
+      val(62,naok) = rawdata(2,26) ! #4 2249W ch 1
+
+      val(71,naok) = rawdata(1,27) ! #2 RPC ch 0
+      val(72,naok) = rawdata(2,27) ! #2 RPC ch 1
+      val(73,naok) = rawdata(1,28) ! #2 RPC ch 2
+      val(74,naok) = rawdata(2,28) ! #2 RPC ch 3
+      val(75,naok) = rawdata(1,29) ! #2 RPC ch 4
+      val(76,naok) = rawdata(2,29) ! #2 RPC ch 5
+      val(77,naok) = rawdata(1,30) ! #2 RPC ch 6
+      val(78,naok) = rawdata(2,30) ! #2 RPC ch 7
+
+      RETURN
+      END
+
+c ======================================
+
